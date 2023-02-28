@@ -28,7 +28,7 @@ using namespace NetworkNS;
 namespace NetworkNS {
 
    /** The constructor takes care of opening a file to write the life-time of slip-spring to. */
-   Hopping::Hopping(double hopping_rate_constant) {
+   Hopping::Hopping(double hopping_rate_constant) : m_eng(), m_neigh() {
 
       /* Open a file to write the life-time of slip-springs. */
       lifetimes_file.open("ss_lifetimes.txt", ofstream::out);
@@ -62,7 +62,7 @@ namespace NetworkNS {
     *  @param[in] temperature The temperature at which the rates will be calculated.
     *  @param[in] elapsed_time The time in ps elapsed from the previous call to the hopping routine.
     */
-   void Hopping::hopping_step(NetwMin *netapp, const cb3D_integrator *b3D,
+   void Hopping::hopping_step(unsigned int istep, NetwMin *netapp, const cb3D_integrator *b3D,
            double *pos_array, double temperature, double elapsed_time) {
 
       /** In order to develop a formalism of elementary events of slip-spring hopping, creation or 
@@ -93,6 +93,8 @@ namespace NetworkNS {
       unsigned int transitions_performed = 0; // transitions counter
       double time_in_seconds = elapsed_time * 1.e-12; // simulation time in s
       double feng_old = 0.0;
+      int cnt_del = 0, cnt_new = 0, cnt_end = 0;
+      double pattempt = 0.0;
               
 #ifndef CONST_SL_SCHEME
       unsigned int new_slipsprings = 0;
@@ -136,6 +138,7 @@ namespace NetworkNS {
 #else
          feng_old = e_gaussian(dr, (*it)->spring_coeff, (*it)->sq_end_to_end, temperature);
 #endif
+         m_eng.add(feng_old);
 
          double cur_slipspring_sq_distance = dr[0]*dr[0] + dr[1]*dr[1] + dr[2]*dr[2];
          
@@ -159,10 +162,12 @@ namespace NetworkNS {
             tNode* cur_sls_end = (*it)->pEnds[iend];
             
             /* Check whether the slip-spring has any of its ends connected to a chain end. */
-            if (cur_sls_end->Type == 1) 
+            if (cur_sls_end->Type == 1) {
                /* The one possible point of attachment is the vacuum, so set it accordingly. */
                sls_attchmnts[iend].push_back(pair<tNode*,double>(static_cast<tNode *>(0), hopping_prob));
-            
+               pattempt += 0.25;
+            }
+
             if (cur_sls_end->Type != 3) {
                // Loop over all strands connected to the other end of the slip-spring
                for (vector<tStrand *>::iterator end_inc_strand = cur_sls_end->pStrands.begin();
@@ -311,6 +316,8 @@ namespace NetworkNS {
 
          // gvog: Finally, we can delete the slip-spring from the pointer array:
          netapp->network->pslip_springs.remove((*it));
+
+         cnt_del++; // deletions performed
       }
 #else
       for (std::list<std::pair<tStrand *, unsigned int> >::iterator it = to_be_deleted.begin();
@@ -437,7 +444,7 @@ namespace NetworkNS {
             }
 
             /* Calculate the cumulative probability of each candidate: */
-            double cum_prob = 0.0, ran_num = netapp->my_rnd_gen->uniform();
+            double cum_prob = 0.0, feng_new = 0.0, ran_num = netapp->my_rnd_gen->uniform();
             tNode *sel_candidate = 0;
             for (std::vector<std::pair<tNode *, double> >::iterator icand = candidates.begin();
                     icand != candidates.end(); ++icand) {
@@ -502,6 +509,10 @@ namespace NetworkNS {
       std::list <tNode>::iterator jat;
       std::vector<tNode *> ich_ends(2);
 
+      double fbias = 1.0;
+      double mneigh = m_neigh.mean();
+      if ( mneigh > 0.0) 
+         fbias  = exp(m_eng.mean()/boltz_const_kJoule_molK/temperature)*pattempt/mneigh/(double)(netapp->network->sorted_chains.size());
 
       for (ich = netapp->network->sorted_chains.begin();
               ich != netapp->network->sorted_chains.end(); ++ich) {
@@ -510,10 +521,12 @@ namespace NetworkNS {
          ich_ends[0] = (*ich).front()->pEnds[0];
          ich_ends[1] = (*ich).back()->pEnds[1];
 
-
          /* Loop over both ends of the chain: */
          for (std::vector<tNode *>::iterator iend = ich_ends.begin();
                  iend != ich_ends.end(); ++iend) {
+
+            /* Check if the end is already entangled. */
+            bool is_entangled_end = pred_node_is_entangled( *iend);
 
             /* Create a vector to store the candidates for slip-spring bridging. */
             std::list<tNode *> candidates;
@@ -552,8 +565,10 @@ namespace NetworkNS {
             }
 
             // gvog: Calculate the creation probability for the current chain end:
-            double creation_prob = nu_hopping_times_exp_of_barrier * (double)candidates.size() * time_in_seconds;
-            
+            double neighcnt = (double)candidates.size();
+            double creation_prob = nu_hopping_times_exp_of_barrier * neighcnt * time_in_seconds;
+            m_neigh.add(neighcnt);
+
             // gvog: and check that it is lower than 1.0
             if (creation_prob > 1.0) {
                cout << "#: hopping.cpp: Please change the rate prefactor. Creation probability = " << creation_prob << " > 1.0\n";
@@ -564,11 +579,11 @@ namespace NetworkNS {
             double ran_num = netapp->my_rnd_gen->uniform();            
             tNode *sel_candidate = 0;
             unsigned int isel_cand = 0;
-           
-            if (creation_prob > ran_num){
+
+            if (creation_prob*fbias > ran_num){
                // gvog: we have to select one of the candidates to bridge our end with:
                ran_num = netapp->my_rnd_gen->uniform();
-               isel_cand = (unsigned int)(ran_num*(double)candidates.size());
+               isel_cand = (unsigned int)(ran_num*neighcnt);
                
                unsigned int icand = 0;
                for (list<tNode *>::iterator it = candidates.begin(); it!=candidates.end(); ++it){
@@ -582,6 +597,7 @@ namespace NetworkNS {
 
             /* Create a new strand and append it the appropriate lists. */
             if (sel_candidate) {
+               cnt_new++;
                /* Here I have to create a new strand, and update the corresponding arrays.*/
                tStrand new_slip_spring;
                new_slip_spring.Id = netapp->network->strands.back().Id + new_slipsprings + 1;
@@ -618,6 +634,8 @@ namespace NetworkNS {
                netapp->network->strands.push_back(new_slip_spring);
                netapp->network->pslip_springs.push_back(&(netapp->network->strands.back()));
                new_slipsprings++;
+               if ( is_entangled_end) cnt_end += 1;
+               if ( pred_node_is_entangled( sel_candidate)) cnt_end += 1;
             }
          }
       }
@@ -634,6 +652,11 @@ namespace NetworkNS {
 #endif
       
       //cout << "#: hopping.cpp: transitions performed = " << transitions_performed - to_be_deleted.size() << endl;
+      if ( transitions_performed + cnt_new + cnt_del > 0)
+         cout << "  => Entg kMC: slip = " << transitions_performed - to_be_deleted.size() 
+                     << " create = " << cnt_new
+                     << " (ends = " << cnt_end << ")" 
+                     << " destroy = " << cnt_del <<endl;
       
       return;
 

@@ -91,6 +91,8 @@ typedef struct sStrand{
    
    double * pChain;                 ///< A pointer to the chain the strand belongs to. Obsolete feature.
    
+   static bool is_bead_ptr_spring(const sStrand *ptr) { return ptr->Type == 1; } ///< A boolean function for judging whether a strand is bead spring.
+   static bool is_slip_ptr_spring(const sStrand *ptr) { return ptr->Type == 2; } ///< A boolean function for judging whether a strand is slip spring.
 } tStrand;
 
 /// @brief A subchain of the network, treated as a vector of internal strands.

@@ -21,6 +21,7 @@
 #include <sstream>
 #include <vector>
 #include <cmath>
+#include <algorithm>
 
 #include "constants.h"
 #include "netmin.h"
@@ -320,6 +321,11 @@ namespace NetworkNS {
          outcome = false;
 
       return outcome;
+   }
+
+   /// @param[in] current A pointer to a type tNode. The node to check whether is entangled or no.
+   bool pred_node_is_entangled(tNode *current) {
+      return std::any_of(current->pStrands.begin(), current->pStrands.end(), &tStrand::is_slip_ptr_spring);
    }
 
 }

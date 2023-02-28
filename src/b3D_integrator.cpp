@@ -15,6 +15,7 @@
 
 
 #include <time.h>
+#include <iomanip>
 
 #include "b3D_integrator.h"
 #include "constants.h"
@@ -195,6 +196,7 @@ namespace NetworkNS{
        *  F(t_n) + X_n(\Delta t) @f]
       */  
       double current_energy = 0.0, current_nb_energy = 0.0;
+      double current_bs_energy = 0.0, current_ss_energy = 0.0;
    
       /** The coefficient @f$\Delta t/\left(\gamma(T) m_{\rm bead}\right)@f$ is measured in 
        * @f${\rm s^2}/{\left(\rm g/mol\right)}@f$. The forces, are measured in 
@@ -227,22 +229,26 @@ namespace NetworkNS{
       
             
       bool out_step;
+      bool out_press;
+      p_outfile.open("press.dat", ofstream::out);
+      p_outfile << "# pxx" << " " << "pyy" << " " << "pzz" << " " << "pxy" << " " << "pxz" << " " << "pyz" << endl;
       for (unsigned int istep = 0; istep < nsteps; istep++) {
          /* Update the step counter: */
          bd_cur_step ++;
          
          /* Check whether it is time to report the statistics.*/
          out_step = (istep % nstout == 0);
+         out_press = (istep % 100 == 0);
          
          /* Calculate bonded and non-bonded interactions.*/
-         current_energy = bonded_force_calculation(out_step);
+         current_energy = bonded_force_calculation( out_step||out_press, current_bs_energy, current_ss_energy);
          /* Calculate non-bonded interactions every 5 timesteps.*/
          if (istep % 5 == 0)
             current_nb_energy = simpler_scheme_non_bonded_force_calculation();
                   
          /* If it's time to report, do it: */
-         if (out_step)
-            report(istep, current_energy, current_nb_energy);
+         // if (out_step)
+            report(istep, dt, current_energy, current_bs_energy, current_ss_energy, current_nb_energy, out_step, out_press);
          
          /* Keep a restart file: */
          if (istep % 20000 == 0){
@@ -251,10 +257,10 @@ namespace NetworkNS{
             //if (cur_bd_net->network->pslip_springs.size() > 1400)
             //   break;
          }
-        
+
          // Hopping starts here.
          if ((istep % 1000 == 0) && slipspring_hopping)
-            my_hopping_scheme->hopping_step(cur_bd_net, this, bd_x, bd_temp, 1.e3*dt);
+            my_hopping_scheme->hopping_step(istep, cur_bd_net, this, bd_x, bd_temp, 1.e3*dt);
          
                   
          /* Optimized integration scheme, in case every bead of the system has the same mass and
@@ -299,6 +305,7 @@ namespace NetworkNS{
          }
 
       }
+      p_outfile.close();
       
 
       /** Note that the full free energy of
@@ -308,10 +315,10 @@ namespace NetworkNS{
 
       
       // Output the final statistics.
-      current_energy = bonded_force_calculation(true);
+      current_energy = bonded_force_calculation(true, current_bs_energy, current_ss_energy);
       current_nb_energy = simpler_scheme_non_bonded_force_calculation();
       
-      report(nsteps, current_energy, current_nb_energy);
+      report(nsteps, dt, current_energy, current_bs_energy, current_ss_energy, current_nb_energy, false, false);
       
       // Deallocate the arrays:
       free(den_dx);
@@ -331,31 +338,55 @@ namespace NetworkNS{
     *  @param[in] b_energy The bonded energy of the system at the current timestep.
     *  @param[in] nb_energy The non-bonded energy of the system at the current timestep.
     */
-   void cb3D_integrator::report(unsigned int istep, double b_energy, double nb_energy){
+   void cb3D_integrator::report(unsigned int istep, double dt, double b_energy, double bs_energy, double ss_energy, double nb_energy, const bool out_step, const bool out_press){
 
       double press_tens[6];
+      double inv_vol;
 
       // gvog: Ask for the current time:
       clock_t tend = clock();
-      calculate_pressure(press_tens);
-
-      double inv_vol = 1.0 / (  cur_bd_net->domain->XBoxLen
-                              * cur_bd_net->domain->YBoxLen
-                              * cur_bd_net->domain->ZBoxLen);
       
-      cout << istep << "\t" << b_energy << "\t" << nb_energy << "\t"
-              << cur_bd_net->network->pslip_springs.size() << "\t" 
-              //<< pressure      * inv_vol << "\t" 
-              << press_tens[0] * inv_vol << "\t"
-              << press_tens[1] * inv_vol << "\t"
-              << press_tens[2] * inv_vol << "\t"
-              << press_tens[3] * inv_vol << "\t" 
-              << press_tens[4] * inv_vol << "\t" 
-              << press_tens[5] * inv_vol << "\t"
-              << " # (" << (double) (tend - tbegin) / CLOCKS_PER_SEC << "s )" << endl;
+      if ( out_press || out_step) {
+         inv_vol = 1.0 / (  cur_bd_net->domain->XBoxLen
+                          * cur_bd_net->domain->YBoxLen
+                          * cur_bd_net->domain->ZBoxLen);         
+         calculate_pressure(press_tens);
+      }
 
-      //cur_bd_net->my_traj_file->add_snapshot_to_dump(cur_bd_net, this, istep);
+      if ( out_press) {
+         // convert to Pa from atm*m
+         double conv = inv_vol * 101325;
+         p_outfile 
+            << istep * dt * 1.e-3   << " " // convert to ns
+            << press_tens[0] * conv << " "
+            << press_tens[1] * conv << " "
+            << press_tens[2] * conv << " "
+            << press_tens[3] * conv << " " 
+            << press_tens[4] * conv << " " 
+            << press_tens[5] * conv << endl;
+      }
 
+      if ( out_step) {
+      
+            cout << left << setw(10) << istep << " ";
+            cout << scientific << setprecision(4) 
+                 << b_energy << " " 
+                 << bs_energy << " " 
+                 << ss_energy << " " 
+                 << nb_energy << " ";
+            cout << cur_bd_net->network->pslip_springs.size() << endl;
+            cout << scientific << setprecision(4) << "  => pres: "
+                 //<< pressure      * inv_vol << " " 
+                 << press_tens[0] * inv_vol << " "
+                 << press_tens[1] * inv_vol << " "
+                 << press_tens[2] * inv_vol << " "
+                 << press_tens[3] * inv_vol << " " 
+                 << press_tens[4] * inv_vol << " " 
+                 << press_tens[5] * inv_vol << " "
+                 << " # (" << (double) (tend - tbegin) / CLOCKS_PER_SEC << "s )" << endl;
+
+            cur_bd_net->my_traj_file->add_snapshot_to_dump(cur_bd_net, this, istep);
+      }
       return;
    }
    
@@ -401,9 +432,12 @@ namespace NetworkNS{
     *  @param[in] stress_calc Boolean variable controlling whether stress calculation will 
     *                         take place.
     */
-   double cb3D_integrator::bonded_force_calculation(bool stress_calc) {
+   double cb3D_integrator::bonded_force_calculation(bool stress_calc, double &bs_energy, double &ss_energy) {
 
-      double fenergy = 0.0; 
+      double energy;
+      double fenergy = 0.0;
+      bs_energy = 0.0;
+      ss_energy = 0.0;
               
       // Initialize the forces to zero.
       for (unsigned int i = 0; i < dofs_3N; i++)
@@ -448,8 +482,13 @@ namespace NetworkNS{
          else
 #endif
          /* Calculate the spring's contribution to the free energy of the system.*/
-         fenergy += f_gaussian( sep_vec, (*it).spring_coeff, 
-                                (*it).sq_end_to_end, bd_temp, grada, gradb);
+         // fenergy += f_gaussian( sep_vec, (*it).spring_coeff, 
+         //                        (*it).sq_end_to_end, bd_temp, grada, gradb);
+         energy = f_gaussian( sep_vec, (*it).spring_coeff, 
+                              (*it).sq_end_to_end, bd_temp, grada, gradb);
+         if (it->Type == 1) bs_energy += energy;
+         else if (it->Type == 2) ss_energy += energy;
+         fenergy += energy;
          
          // Accumulate the forces of the first atom:
          bd_f[taga3 + 0] += grada[0];
@@ -482,11 +521,8 @@ namespace NetworkNS{
             bd_stress[tagb][4] += 0.5 * sep_vec[0] * grada[2];
             bd_stress[tagb][5] += 0.5 * sep_vec[1] * grada[2];
          }
-      }
+      }  
 
-      
-      
-      
       return (fenergy);
    }
 
@@ -609,7 +645,7 @@ namespace NetworkNS{
          yshift[cur_node] = bd_x[3 * cur_node + 1];
          zshift[cur_node] = bd_x[3 * cur_node + 2];
 
-         //return the nodes back into the primary box 
+         //return the nodes back into the primary box
          cur_bd_net->domain->minimum_image(xshift[cur_node], yshift[cur_node], zshift[cur_node]);
 
          //shift the node position to a shifted simulation box that contains the  grid   
@@ -664,7 +700,7 @@ namespace NetworkNS{
              * \f}
              */
             vx = max(min(xl + half_rnode, cur_bd_net->grid->cells[l].Vec[0])
-               - max(xl-half_rnode, cur_bd_net->grid->cells[l].Vec[0]-cur_bd_net->grid->dlx), 0.0);
+                   - max(xl-half_rnode, cur_bd_net->grid->cells[l].Vec[0]-cur_bd_net->grid->dlx), 0.0);
             
             vy = max(min(yl + half_rnode, cur_bd_net->grid->cells[l].Vec[1])
                - max(yl-half_rnode, cur_bd_net->grid->cells[l].Vec[1]-cur_bd_net->grid->dly), 0.0);
@@ -781,6 +817,11 @@ namespace NetworkNS{
          bd_nb_f[3 * cur_node + 2] = fz;
 
       }
+      // debug forces: dump in kJ/mol*Ang -> x10^-7 Nt/mol
+      // FILE *ftmp = fopen("test.forces", "wt");
+      // for (cur_node = 0; cur_node < max_node; cur_node++)
+      //    fprintf(ftmp,"%13.5f %13.5f %13.5f\n", bd_nb_f[3 * cur_node], bd_nb_f[3 * cur_node+1], bd_nb_f[3 * cur_node+2]);
+      // fclose(ftmp);
 
       return (f_nb_energy);
    }

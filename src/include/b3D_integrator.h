@@ -21,6 +21,7 @@
 #include <list>
 #include <stdlib.h>
 #include <vector>
+#include <fstream>
 
 #include "hopping.h"
 #include "net_types.h"
@@ -47,10 +48,10 @@ namespace NetworkNS {
       
       void compute_stresses (void);    ///< A function for computing the per-atom stress.
       
-      void report(unsigned int, double, double);   ///< The function taking care of reporting the current status of 
-                                                   ///< the simulation to both the standard output and the dump file.
+      void report(unsigned int, double, double, double, double, double, const bool, const bool);   ///< The function taking care of reporting the current status of 
+                                                                           ///< the simulation to both the standard output and the dump file.
 
-      double bonded_force_calculation(bool); ///< The function for the calculation of bonded interactions
+      double bonded_force_calculation(bool, double &, double &); ///< The function for the calculation of bonded interactions
       
       double simpler_scheme_non_bonded_force_calculation(void);   
       
@@ -136,6 +137,7 @@ namespace NetworkNS {
      
       void cell_density_nodal_points(void);        // compute the density in each cell of the orthogonal grid    
       
+      ofstream p_outfile;                          // pressure tenssor output file  
    };
    
 }  

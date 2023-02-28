@@ -3,6 +3,9 @@ events.txt
 netmin.x
 ss_lifetimes.txt
 obj/*
+build*/
+test*/
+.vscode/*
 
 #GitHub C++ gitignore
 # Compiled Object files

@@ -193,6 +193,12 @@ namespace NetworkNS {
                current_strand.pEnds.push_back(&(*it));
             }
          }
+         if ( found != 2 || snode == enode) {
+            cout << ": --- There is a problem at line: " << (bonds_line_start + 2 + i + 1) 
+                 << " of the data file.\n" << lines_of_file[bonds_line_start + 2 + i] << "\n";
+            cout << "  --- Bond's anchors were not found or they are identical.\n";
+            exit(0);
+         }
 
          /* Spring coeffs comes from the data file in kJ/mol/K/A^2 */
          current_strand.spring_coeff = bond_types[current_strand.Type-1].spring_coeff;

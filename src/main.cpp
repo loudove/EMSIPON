@@ -69,13 +69,13 @@ int main(int argc, char** argv) {
    
    // Define a new pointer to the class:
    NetwMin netw_min(filename);
-   cb3D_integrator b3D_integrator(&netw_min, 500.0, creation_rate);
+   cb3D_integrator b3D_integrator(&netw_min, 400.0, creation_rate);
    
    cout << "#: Integrator has been initialized. Simulation will start for "<<bd3D_nsteps<< " steps.\n";
    cout << "#: The rate for the slip-spring creation is: " << creation_rate << endl;
    
    // Simulation starts here:
-   double timestep = 1.0; // integration timestep in ps.
+   double timestep = 10.0; // integration timestep in ps.
    cout << "#: The timestep of the integrator will be: " << timestep << " ps.\n";
    cout << "#: Report will be written every: " << bd3D_write_every << " steps.\n";
    

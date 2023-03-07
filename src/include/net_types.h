@@ -60,6 +60,12 @@ typedef struct sNode{
    double r_star;                      ///< Edge length of a cube formed around the node for the estimation of 
                                        ///< nonbonded interactions, computed by employing a star polymer approximation.
                                        ///< This feature is obsolete. It will be removed in a future version.
+
+   int m_is_anchor;                    ///< Counter of the entanglements anchored in the bead, i.e., (if 0 the bead do not 
+                                       ///< participate in any tStrand of Type = 2).
+
+   static bool is_node_ptr_end(const sNode *ptr) { return ptr->Type == 1; } ///< A boolean function for judging whether a node is the end of a chain.
+   static bool is_node_ptr_entangled(const sNode *ptr) { return ptr->m_is_anchor > 1; } ///< A boolean function for judging whether a node is entangled.
 }tNode;
 
 

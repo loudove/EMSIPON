@@ -28,6 +28,9 @@
 #include "network.h"
 #include "domain.h"
 #include "rng.h"
+#ifdef CHECKDISPLACEMENT
+#include "histogram.h"
+#endif
 
 namespace NetworkNS {
    
@@ -53,7 +56,7 @@ namespace NetworkNS {
 
       double bonded_force_calculation(bool, double &, double &); ///< The function for the calculation of bonded interactions
       
-      double simpler_scheme_non_bonded_force_calculation(void);   
+      double simpler_scheme_non_bonded_force_calculation(int);   
       
       void calculate_pressure(double *);  ///< Sum the per-atom stresses to calculate the pressure of the 
                                           ///< simulation box.
@@ -94,7 +97,28 @@ namespace NetworkNS {
       
       double *bd_f_ps;  ///< The forces acted on the beads durign the previous timestep of the BD 
                         ///< simulation.
-      
+
+#ifdef CHECKDISPLACEMENT
+      double *bd_bs_f;  ///< The forces due to bead spring interactions during the Brownian Dynamics 
+                        ///< simulation, at the current timestep.
+      double *bd_ss_f;  ///< The forces due to slip spring interactions during the Brownian Dynamics 
+                        ///< simulation, at the current timestep.
+      double *bd_rnd_dx; ///< The displacements due to random forces during the Brownian Dynamics 
+                         ///< simulation, at the current timestep.
+      bool   *bs_is_anchor; ///< Flag for identifying is an entanglements is anchored in the bead 
+      double *bd_bs_f_ps; ///< The bead spring forces acted on the beads durign the previous timestep
+                          ///< of the BD simulation.
+      double *bd_ss_f_ps; ///< The splip spring forces acted on the beads durign the previous timestep
+                          ///< of the BD simulation.
+      double *bd_nb_f_ps; ///< The excluded volume forces acted on the beads durign the previous timestep
+                          ///< of the BD simulation.
+
+      Math::Histogram<double> *hist_dxbs; ///< Histogram for the displacements due to bead spring forces
+      Math::Histogram<double> *hist_dxss; ///< Histogram for the displacements due to splip spring forces
+      Math::Histogram<double> *hist_dxev; ///< Histogram for the displacements due to excluded volume forces
+      Math::Histogram<double> *hist_dxrnd; ///< Histogram for the displacements due to random forces
+#endif
+
       class Hopping *my_hopping_scheme;   ///< A pointer to a hopping kinetic Monte Carlo class. 
       
       clock_t tbegin;   ///< The intial timestep of the Brownian Dynamics simulation.

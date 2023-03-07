@@ -50,7 +50,9 @@ namespace NetworkNS {
       
    };
    bool pred_strand_is_end(tStrand *);    ///< A boolean function for judging whether a strand is a chain end.
+/* Not working since slip spring are not inclded in pStrands
    bool pred_node_is_entangled(tNode *);  ///< A boolean function for judging whether a node is entangled.
+*/
 }
 
 #endif	/* NETWORK_H */

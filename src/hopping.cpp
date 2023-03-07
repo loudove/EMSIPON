@@ -282,9 +282,11 @@ namespace NetworkNS {
 #endif
             
             /* In case the attachment point exists: */
-            if (target_node)
+            if (target_node) {
+               (*it)->pEnds[end_to_jump]->m_is_anchor -= 1;
                (*it)->pEnds[end_to_jump] = target_node;
-            else
+               target_node->m_is_anchor += 1;
+            } else
                destroy_slpsprng = true;
             
             if (destroy_slpsprng)
@@ -310,6 +312,9 @@ namespace NetworkNS {
                netapp->network->strands.erase(jt);
                break;
             }
+
+         (*it)->pEnds[0]->m_is_anchor -= 1;
+         (*it)->pEnds[1]->m_is_anchor -= 1;
 
          /* Write the lifetime of the slip-spring to the file: */
          lifetimes_file << (int) (b3D->bd_cur_step - (*it)->tcreation) << endl;
@@ -466,8 +471,12 @@ namespace NetworkNS {
             ran_num = netapp->my_rnd_gen->uniform();
             if (criterion >= ran_num) {
                // gvog: The move has been accepted, update the connectivity of the slip-spring.
+               (*it).first->pEnds[0]->m_is_anchor -= 1;
+               (*it).first->pEnds[1]->m_is_anchor -= 1;
                (*it).first->pEnds[0] = new_end;
                (*it).first->pEnds[1] = sel_candidate;
+               new_end->m_is_anchor += 1;
+               sel_candidate->m_is_anchor += 1;
             }
 
          } 
@@ -526,7 +535,7 @@ namespace NetworkNS {
                  iend != ich_ends.end(); ++iend) {
 
             /* Check if the end is already entangled. */
-            bool is_entangled_end = pred_node_is_entangled( *iend);
+            bool is_entangled_end = (*iend)->m_is_anchor > 0;
 
             /* Create a vector to store the candidates for slip-spring bridging. */
             std::list<tNode *> candidates;
@@ -607,6 +616,9 @@ namespace NetworkNS {
                new_slip_spring.slip_spring = true;
                new_slip_spring.OrChain = 0;
                new_slip_spring.tcreation = b3D->bd_cur_step;
+
+               new_slip_spring.pEnds[0]->m_is_anchor += 1;
+               new_slip_spring.pEnds[1]->m_is_anchor += 1;
                
                if (netapp->network->pslip_springs.size() > 0){
                   new_slip_spring.spring_coeff = netapp->network->pslip_springs.back()->spring_coeff;
@@ -634,8 +646,9 @@ namespace NetworkNS {
                netapp->network->strands.push_back(new_slip_spring);
                netapp->network->pslip_springs.push_back(&(netapp->network->strands.back()));
                new_slipsprings++;
-               if ( is_entangled_end) cnt_end += 1;
-               if ( pred_node_is_entangled( sel_candidate)) cnt_end += 1;
+
+               /* check if two ends participate in the slip spring */
+               if ( sNode::is_node_ptr_end( sel_candidate)) cnt_end += 1;
             }
          }
       }
@@ -650,7 +663,7 @@ namespace NetworkNS {
               it != netapp->network->pslip_springs.end(); ++it)
          (*it)->Id = start_tag++;
 #endif
-      
+
       //cout << "#: hopping.cpp: transitions performed = " << transitions_performed - to_be_deleted.size() << endl;
       if ( transitions_performed + cnt_new + cnt_del > 0)
          cout << "  => Entg kMC: slip = " << transitions_performed - to_be_deleted.size() 

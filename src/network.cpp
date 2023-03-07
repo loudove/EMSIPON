@@ -147,6 +147,9 @@ namespace NetworkNS {
          /* Pair coeffs come from the data file in Angstrom. */
          current_node.r_node = node_types[current_node.Type-1].r_node;
          current_node.r_star = current_node.r_node;
+         
+         /* Initialize as non-entangled bead. */
+         current_node.m_is_anchor = 0;
 
          nodes.push_back(current_node);
       }
@@ -228,6 +231,10 @@ namespace NetworkNS {
          if (!(*it).slip_spring) {
             (*it).pEnds[0]->pStrands.push_back(&(*it));
             (*it).pEnds[1]->pStrands.push_back(&(*it));
+         } else {
+            // Mark them as entangled beads
+            (*it).pEnds[0]->m_is_anchor += 1;
+            (*it).pEnds[1]->m_is_anchor += 1;
          }
       }
 
@@ -328,10 +335,10 @@ namespace NetworkNS {
 
       return outcome;
    }
-
+/*
    /// @param[in] current A pointer to a type tNode. The node to check whether is entangled or no.
    bool pred_node_is_entangled(tNode *current) {
       return std::any_of(current->pStrands.begin(), current->pStrands.end(), &tStrand::is_slip_ptr_spring);
    }
-
+*/
 }

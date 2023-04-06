@@ -370,7 +370,8 @@ namespace NetworkNS{
 #endif
                bd_x[i] = bd_x_ps[i]
                        + (bd_f[i] + bd_nb_f[i]) * dt_times_inv_mass_gamma
-                       + 0.5 * (bd_f[i] + bd_nb_f[i] - bd_f_ps[i]) * dt_times_inv_mass_gamma * (1.e-12*dt)
+                     //   + 0.5 * (bd_f[i] + bd_nb_f[i] - bd_f_ps[i]) * dt_times_inv_mass_gamma * (1.e-12*dt)
+                       + 0.5 * (bd_f[i] + bd_nb_f[i] - bd_f_ps[i]) * dt_times_inv_mass_gamma
 #ifdef CHECKDISPLACEMENT
                        + bd_rnd_dx[i];
 #else
@@ -527,41 +528,41 @@ namespace NetworkNS{
                           * cur_bd_net->domain->YBoxLen
                           * cur_bd_net->domain->ZBoxLen);
          calculate_pressure(press_tens);
-      }
 
-      if ( out_press) {
-         // convert to Pa from atm*m
-         double conv = inv_vol * 101325;
-         p_outfile
-            << istep * dt * 1.e-3   << " " // convert to ns
-            << press_tens[0] * conv << " "
-            << press_tens[1] * conv << " "
-            << press_tens[2] * conv << " "
-            << press_tens[3] * conv << " "
-            << press_tens[4] * conv << " "
-            << press_tens[5] * conv << endl;
-      }
+         if ( out_press) {
+            // convert to Pa from atm*m
+            double conv = inv_vol * 101325;
+            p_outfile
+               << istep * dt * 1.e-3   << " " // convert to ns
+               << press_tens[0] * conv << " "
+               << press_tens[1] * conv << " "
+               << press_tens[2] * conv << " "
+               << press_tens[3] * conv << " "
+               << press_tens[4] * conv << " "
+               << press_tens[5] * conv << endl;
+         }
 
-      if ( out_step) {
+         if ( out_step) {
 
-            cout << left << setw(10) << istep << " ";
-            cout << scientific << setprecision(4)
-                 << b_energy << " "
-                 << bs_energy << " "
-                 << ss_energy << " "
-                 << nb_energy << " ";
-            cout << cur_bd_net->network->pslip_springs.size() << endl;
-            cout << scientific << setprecision(4) << "  => pres: "
-                 //<< pressure      * inv_vol << " "
-                 << press_tens[0] * inv_vol << " "
-                 << press_tens[1] * inv_vol << " "
-                 << press_tens[2] * inv_vol << " "
-                 << press_tens[3] * inv_vol << " "
-                 << press_tens[4] * inv_vol << " "
-                 << press_tens[5] * inv_vol << " "
-                 << " # (" << (double) (tend - tbegin) / CLOCKS_PER_SEC << "s )" << endl;
+               cout << left << setw(10) << istep << " ";
+               cout << scientific << setprecision(4)
+                  << b_energy << " "
+                  << bs_energy << " "
+                  << ss_energy << " "
+                  << nb_energy << " ";
+               cout << cur_bd_net->network->pslip_springs.size() << endl;
+               cout << scientific << setprecision(4) << "  => pres: "
+                  //<< pressure      * inv_vol << " "
+                  << press_tens[0] * inv_vol << " "
+                  << press_tens[1] * inv_vol << " "
+                  << press_tens[2] * inv_vol << " "
+                  << press_tens[3] * inv_vol << " "
+                  << press_tens[4] * inv_vol << " "
+                  << press_tens[5] * inv_vol << " "
+                  << " # (" << (double) (tend - tbegin) / CLOCKS_PER_SEC << "s )" << endl;
 
-            cur_bd_net->my_traj_file->add_snapshot_to_dump(cur_bd_net, this, istep);
+               cur_bd_net->my_traj_file->add_snapshot_to_dump(cur_bd_net, this, istep);
+         }
       }
       return;
    }

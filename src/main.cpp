@@ -31,6 +31,7 @@ int main(int argc, char** argv) {
 
     
    unsigned int bd3D_nsteps = 0, bd3D_write_every = 0;
+   double temperature;
    
    cout.precision(12);
    
@@ -61,6 +62,11 @@ int main(int argc, char** argv) {
       bd3D_write_every = atol(argv[4]);
    else
       bd3D_write_every = 1000;
+
+   if (argc > 5)
+      temperature = atol(argv[5]);
+   else
+      temperature = 400.0;
       
 
 #ifdef FENE_SLS  
@@ -69,7 +75,7 @@ int main(int argc, char** argv) {
    
    // Define a new pointer to the class:
    NetwMin netw_min(filename);
-   cb3D_integrator b3D_integrator(&netw_min, 400.0, creation_rate);
+   cb3D_integrator b3D_integrator(&netw_min, temperature, creation_rate);
    
    cout << "#: Integrator has been initialized. Simulation will start for "<<bd3D_nsteps<< " steps.\n";
    cout << "#: The rate for the slip-spring creation is: " << creation_rate << endl;

@@ -18,21 +18,21 @@
 #ifndef CONSTANTS_H
 #define	CONSTANTS_H
 
-double const avogadro_constant = 6.02214129e23;       ///< The Avogadro constant measured in 
+double const avogadro_constant = 6.02214076e23;       ///< The Avogadro constant measured in 
                                                       ///< @f$ {\rm mol}^{-1} @f$
                                                         
-double const kg_to_amus = 6.022141129e26;             ///< Conversion from kg to g/mol, 
+double const kg_to_amus = 6.02214076e26;              ///< Conversion from kg to g/mol, 
                                                       ///< @f$ 1 {\rm kg} = @f$ 
 
-double const amu_to_kg = 1.660538921e-27;             ///< Conversion from g/mol to kg.
+double const amu_to_kg = 1.660539067e-27;             ///< Conversion from g/mol to kg.
                                                       ///< @f$ 1 \:{\rm g/mol}=1.660538921 
                                                       ///< \times 10^{-27} kg @f$
 
 double const pi_monomer_mass = 68.12;                 ///< The mass of an isoprene monomer in g/mol.
 
-double const boltz_const_Joule_molK = 8.3144621;      ///< The Boltzmann constant in J/mol/K.
-double const boltz_const_kJoule_molK = 8.3144621e-3;  ///< The Boltzmann constant in kJ/mol/K
-double const boltz_const_Joule_K = 1.3806488e-23;     ///< The Boltzmann constant in J/K.
+double const boltz_const_Joule_molK = 8.314462618;      ///< The Boltzmann constant in J/mol/K.
+double const boltz_const_kJoule_molK = 8.314462618e-3;  ///< The Boltzmann constant in kJ/mol/K
+double const boltz_const_Joule_K = 1.380649e-23;     ///< The Boltzmann constant in J/K.
 double const pi_tube_diameter = 80.39;                ///< The tube diameter of polyisoprene 
                                                       ///< in @f$\text{\AA} @f$. 
                                                       ///< The estimation is based on the work of 

@@ -20,7 +20,7 @@ set(lib_source_files
     src/rng.cpp)
 
 # uncomment to enable constant slip springs mode
-# add_compile_definitions(CONST_SL_SCHEME)
+add_compile_definitions(CONST_SL_SCHEME)
 add_compile_definitions(CHECKDISPLACEMENT)
 
 add_library(EmpsiponCore ${lib_source_files})

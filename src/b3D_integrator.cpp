@@ -545,13 +545,13 @@ namespace NetworkNS{
          if ( out_step) {
 
                cout << left << setw(10) << istep << " ";
-               cout << scientific << setprecision(4)
-                  << b_energy << " "
+               cout << scientific << setprecision(8)
+                  << (b_energy+nb_energy) << " "
                   << bs_energy << " "
                   << ss_energy << " "
                   << nb_energy << " ";
                cout << cur_bd_net->network->pslip_springs.size() << endl;
-               cout << scientific << setprecision(4) << "  => pres: "
+               cout << scientific << setprecision(8) << "  => pres: "
                   //<< pressure      * inv_vol << " "
                   << press_tens[0] * inv_vol << " "
                   << press_tens[1] * inv_vol << " "
@@ -830,11 +830,9 @@ namespace NetworkNS{
               * cur_bd_net->network->nodes.front().r_node
               * cur_bd_net->network->nodes.front().r_node);
 
-/*
       bool ok = istep % 1000 == 0;
       FILE *fp = 0;
       if (ok) fp = fopen("coords.txt", "a+");
-      */
 
       for (cur_node = 0; cur_node < max_node; cur_node++) {
          /*loop over the (*it).node_cell itself and its first neighbors (it is always equal
@@ -858,7 +856,7 @@ namespace NetworkNS{
          yshift[cur_node] += 0.5 * cur_bd_net->domain->YBoxLen;
          zshift[cur_node] += 0.5 * cur_bd_net->domain->ZBoxLen;
 
-         // if (ok) fprintf(fp,"%.15g %.15g %.15g\n",xshift[cur_node]/10.,yshift[cur_node]/10.,zshift[cur_node]/10.); 
+         if (ok) fprintf(fp,"%.15g %.15g %.15g\n",xshift[cur_node]/10.,yshift[cur_node]/10.,zshift[cur_node]/10.); 
 
          grid_cell[cur_node] = cur_bd_net->grid->find_grid_cell(xshift[cur_node], yshift[cur_node],
                                           zshift[cur_node]);
@@ -1024,22 +1022,19 @@ namespace NetworkNS{
          bd_nb_f[3 * cur_node + 2] = fz;
 
       }
-      // if (ok) {
-      //    fprintf(fp,"\n");
-      //    fclose(fp);
-      // }
+      if (ok) {
+         fprintf(fp,"\n");
+         fclose(fp);
+      }
       // exit(0);
       // debug forces: dump in kJ/mol*Ang -> x10^-7 Nt/mol
-      // FILE *ftmp = fopen("test.forces", "wt");
-      /*
-      if (ok) {
-      FILE *ftmp = fopen("test.forces", "a+");
-      for (cur_node = 0; cur_node < max_node; cur_node++)
-         fprintf(ftmp,"%d %13.5f %13.5f %13.5f\n", cur_node+1, bd_nb_f[3 * cur_node], bd_nb_f[3 * cur_node+1], bd_nb_f[3 * cur_node+2]);
-      fprintf(ftmp,"\n");
-      fclose(ftmp);
-      }
-      */
+      // if (ok) {
+      // FILE *ftmp = fopen("test.forces", "a+");
+      // for (cur_node = 0; cur_node < max_node; cur_node++)
+      //    fprintf(ftmp,"%d %13.5f %13.5f %13.5f\n", cur_node+1, bd_nb_f[3 * cur_node], bd_nb_f[3 * cur_node+1], bd_nb_f[3 * cur_node+2]);
+      // fprintf(ftmp,"\n");
+      // fclose(ftmp);
+      // }
       // exit(0);
 
       return (f_nb_energy);
